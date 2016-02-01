@@ -6,7 +6,7 @@
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
+ *  any later version.
  *
  *  This program is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -50,6 +50,10 @@ public: // Public member functions.
 				m_iImageWidth(size_t{256}),
 				m_iImageHeight(size_t{256}) {}
 
+	/*
+	 * Parse command line parameters to extract the platform and device IDs
+	 * and the image dimensions. Returns a new CConfig object in a shared_ptr.
+	 */
 	static std::shared_ptr<CConfig> parse(int argc, char* argv[])
 	{
 		std::shared_ptr<CConfig> Cfg(new CConfig);
@@ -79,6 +83,9 @@ public: // Public member functions.
 		return Cfg;
 	}
 
+	/*
+	 * Type cast operator to conver to an std::string.
+	 */
 	explicit operator std::string() const
 	{
 		std::ostringstream ss;
@@ -87,6 +94,9 @@ public: // Public member functions.
 	}
 };
 
+/*
+ * Output a CConfig object to a stream using the std::string type cast.
+ */
 std::ostream& operator<<(std::ostream& os, const CConfig& obj)
 {
 	os << (std::string) obj;
@@ -99,9 +109,15 @@ std::ostream& operator<<(std::ostream& os, const CConfig& obj)
 std::shared_ptr<std::vector<cl_float>> GenerateImage(size_t width_, size_t height_)
 {
 	std::shared_ptr<std::vector<cl_float>> Img(new std::vector<cl_float>(width_*height_));
+
+	// This sets up the random number generator seed as the current time in ticks since the epoch.
 	const auto random_seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::default_random_engine generator(static_cast<unsigned int>(random_seed));
+
+	// Set up a uniform distribution with minimum 0.9 and maximum 1.0.
 	std::uniform_real_distribution<cl_float> distribution(0.9f, 1.0f);
+
+	// Repeatedly sample the uniform distribution and store the random number in the image.
 	for (auto &item: *Img) { item = distribution(generator); }
 	return Img;
 }
@@ -137,6 +153,10 @@ void PrintHelpMessage()
 	std::exit(0);
 }
 
+/*
+ * Parse the command line inputs for non-configuration options, e.g. -h and --help
+ * that force printing the help screen instead of executing code.
+ */
 void ParseCLI(int argc, char* argv[])
 {
 	for (int idx = 0; idx < argc; idx++)
@@ -152,40 +172,77 @@ int main(int argc, char* argv[])
 	std::shared_ptr<CConfig> Cfg = CConfig::parse(argc, argv);
 	std::cout << "Configuration: " << *Cfg << std::endl;
 
+	// Create the list of files that define the kernel that will be autotuned.
 	auto Kernels = std::vector<std::string>{"./src/medfilt.cl"};
+
+	// This is the list of files needed to compile the reference kernel.
+	// The outputs of each kernel generated during the autotuning get compared
+	// to this kernels output so that bugs get detected.
 	auto BaselineKernel = std::vector<std::string>{"./src/medfilt_baseline.cl"};
 
+	// Create the tuner using the platform and device IDs passed on the command line.
 	cltune::Tuner tuner(Cfg->m_iPlatformID, Cfg->m_iDeviceID);
+
+	// All combinations of values for every tuning parameter will be tested.
+	// For a lot of parameters or values for each parameter, this can be
+	// slow.
 	tuner.UseFullSearch();
+
 	// Outputs the search process to a file
 	tuner.OutputSearchLog("search_log.txt");
 
+	// Generate the random test image as an std::vector since CLTune doesn't understand images yet.
 	auto ImgIn = GenerateImage(Cfg->m_iImageWidth, Cfg->m_iImageHeight);
+
+	// Allocate space for the output image and initialise it to zero.
 	std::shared_ptr<std::vector<cl_float>> ImgOut(new std::vector<cl_float>(Cfg->m_iImageWidth*Cfg->m_iImageHeight));
 	for (auto &item: *ImgOut) { item = 0.0f; }
 
 	size_t work_x = Cfg->m_iImageWidth;
 	size_t work_y = Cfg->m_iImageHeight;
-	work_x = work_x + work_x % 64;
-	work_y = work_y + work_y % 64;
 
+	// Here I add a kernel for CLTune to autotune by passing in the list of source files and a kernel name.
+	// The work group size parameters are the basis from which the final work group size gets calculated
+	// below.
 	auto kernelID = tuner.AddKernel(Kernels, "medfilt", {work_x, work_y}, {1, 1});
+
+	// Define the tuning parameters and the values they can take on.
+	// USE_LOCAL_MEM == 0 if local memory WILL NOT be used.
+	// USE_LOCAL_MEM == 1 if local memory WILL be used.
 	tuner.AddParameter(kernelID, "USE_LOCAL_MEM", {0, 1});
+	// These two are used to define the local work size.
 	tuner.AddParameter(kernelID, "TBX", {1, 4, 8, 16, 32});
 	tuner.AddParameter(kernelID, "TBY", {1, 4, 8, 16, 32});
 
+	// This tells CLTune how much local memory a given choice of parameters will consume.
+	// It gets expressed as a function that takes an std::vector as input and returns the
+	// size
 	auto LocalMemorySize = [] (std::vector<size_t> v) {
-		if (v[0] != 0) { return (v[1] + 2) * (v[2] + 2); }
+		if (v[0] != 0) { return (v[1] + 2) * (v[2] + 2) * 4; }
 		else           { return size_t{0}; }
 	};
+	// This tells CLTune which function to use to calculate local memory and which
+	// tuning parameters to pass to this function.
 	tuner.SetLocalMemoryUsage(kernelID, LocalMemorySize, {"USE_LOCAL_MEM", "TBX", "TBY"});
 
+	// This is how one tells CLTune that TBX and TBY relate to the global and local
+	// work size. Thes operations take the global and local work size specified when adding
+	// the kernel and divide or multiply them by the variables listed before running each
+	// kernel.
 	tuner.DivGlobalSize(kernelID, {"TBX", "TBY"});
 	tuner.MulGlobalSize(kernelID, {"TBX", "TBY"});
 	tuner.MulLocalSize(kernelID, {"TBX", "TBY"});
 
+	// The number of threads, i.e. the global work size, needs to be a multiple of
+	// the local work size, which is (8,8) for the reference kernel.
+	work_x = work_x + work_x % 8;
+	work_y = work_y + work_y % 8;
 	tuner.SetReference(BaselineKernel, "medfilt", {work_x, work_y}, {8, 8});
 
+	// Now pass the kernel arguments, in the order they appear in the kernel signature.
+	// Using AddArgumentOutput also tells CLTune which argument needs to be compared
+	// between the tuned and reference kernels to check that the output is always the
+	// same, irrespective of the choice of parameters.
 	tuner.AddArgumentInput(*ImgIn);
 	tuner.AddArgumentOutput(*ImgOut);
 	tuner.AddArgumentScalar(static_cast<int>(Cfg->m_iImageWidth));
@@ -198,6 +255,4 @@ int main(int argc, char* argv[])
 	auto time_ms = tuner.PrintToScreen();
 	tuner.PrintToFile("output.csv");
 	tuner.PrintFormatted();
-
-//	std::system("pause");
 }

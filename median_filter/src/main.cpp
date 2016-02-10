@@ -173,12 +173,12 @@ int main(int argc, char* argv[])
 	std::cout << "Configuration: " << *Cfg << std::endl;
 
 	// Create the list of files that define the kernel that will be autotuned.
-	auto Kernels = std::vector<std::string>{"./src/medfilt.cl"};
+	auto Kernels = std::vector<std::string>{"./median_filter/src/medfilt.cl"};
 
 	// This is the list of files needed to compile the reference kernel.
 	// The outputs of each kernel generated during the autotuning get compared
 	// to this kernels output so that bugs get detected.
-	auto BaselineKernel = std::vector<std::string>{"./src/medfilt_baseline.cl"};
+	auto BaselineKernel = std::vector<std::string>{"./median_filter/src/medfilt_baseline.cl"};
 
 	// Create the tuner using the platform and device IDs passed on the command line.
 	cltune::Tuner tuner(Cfg->m_iPlatformID, Cfg->m_iDeviceID);

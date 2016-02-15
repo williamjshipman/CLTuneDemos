@@ -10,9 +10,16 @@ set(FRAMEWORK_INCLUDE_DIRS ${OPENCL_INCLUDE_DIRS} ${CLTUNE_DIR})
 set(FRAMEWORK_LIBRARY_DIRS ${CLTUNE_DIR})
 set(FRAMEWORK_LIBRARIES ${OPENCL_LIBRARIES} cltune)
 
-include_directories(${FRAMEWORK_INCLUDE_DIRS})
+include_directories(${FRAMEWORK_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/util/include/)
 link_directories(${FRAMEWORK_LIBRARY_DIRS})
 
+set(CLTuneDemosUtilitiesSrc
+	util/src/CCLIArgumentsBase.cpp)
+
+add_library(CLTuneDemosUtilities SHARED ${CLTuneDemosUtilitiesSrc})
+
+set_property(TARGET CLTuneDemosUtilities PROPERTY CXX_STANDARD 11)
+set_property(TARGET CLTuneDemosUtilities PROPERTY CXX_STANDARD_REQUIRED ON)
 
 add_executable(MedianFilter
     median_filter/src/main.cpp)
@@ -20,7 +27,7 @@ add_executable(MedianFilter
 set_property(TARGET MedianFilter PROPERTY CXX_STANDARD 11)
 set_property(TARGET MedianFilter PROPERTY CXX_STANDARD_REQUIRED ON)
 
-target_link_libraries(MedianFilter ${FRAMEWORK_LIBRARIES})
+target_link_libraries(MedianFilter ${FRAMEWORK_LIBRARIES} CLTuneDemosUtilities)
 
 add_custom_command(TARGET MedianFilter PRE_BUILD
 					COMMAND ${CMAKE_COMMAND} -E

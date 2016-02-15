@@ -35,73 +35,98 @@
 
 #include "CL/opencl.h"
 
+#include "CCLIArgumentsBase.h"
+
 // Application configuration data from CLI.
-class CConfig
+class CConfig : public CCLIArgumentsBase
 {
-public: // Public fields.
-	size_t m_iPlatformID;
-	size_t m_iDeviceID;
+private:
 	size_t m_iImageWidth;
 	size_t m_iImageHeight;
 
 public: // Public member functions.
-	CConfig() : m_iPlatformID(size_t{0}),
-				m_iDeviceID(size_t{0}),
-				m_iImageWidth(size_t{256}),
-				m_iImageHeight(size_t{256}) {}
-
-	/*
-	 * Parse command line parameters to extract the platform and device IDs
-	 * and the image dimensions. Returns a new CConfig object in a shared_ptr.
-	 */
-	static std::shared_ptr<CConfig> parse(int argc, char* argv[])
+	CConfig()
 	{
-		std::shared_ptr<CConfig> Cfg(new CConfig);
-		for (int idx = 1; idx < argc; idx++)
-		{
-			if (std::strcmp(argv[idx], "-p") == 0)
-			{
-				if (idx+1 < argc)
-					Cfg->m_iPlatformID = static_cast<size_t>(std::atoi(argv[idx+1]));
-			}
-			else if (std::strcmp(argv[idx], "-d") == 0)
-			{
-				if (idx+1 < argc)
-					Cfg->m_iDeviceID = static_cast<size_t>(std::atoi(argv[idx+1]));
-			}
-			else if (std::strcmp(argv[idx], "-W") == 0)
-			{
-				if (idx+1 < argc)
-					Cfg->m_iImageWidth = static_cast<size_t>(std::atoi(argv[idx+1]));
-			}
-			else if (std::strcmp(argv[idx], "-H") == 0)
-			{
-				if (idx+1 < argc)
-					Cfg->m_iImageHeight = static_cast<size_t>(std::atoi(argv[idx+1]));
-			}
-		}
-		return Cfg;
+		Init(0, nullptr);
 	}
 
+	CConfig(int argc_, char* argv_[])
+	{
+		Init(argc_, argv_);
+	}
+
+	size_t GetImageHeight() const { return m_iImageHeight; }
+	size_t GetImageWidth()  const { return m_iImageWidth; }
+
+protected:
+	virtual void Init(int argc_, char* argv_[])
+	{
+		CCLIArgumentsBase::Init(argc_, argv_);
+		InitThisClass(argc_, argv_);
+	}
+
+	virtual void PrintHelpMessage()
+	{
+		std::cout << "CLTuneDemos/median_filter: A demo showing CLTune applied to a median filter." << std::endl;
+		std::cout << "Copyright (C) 2016 William John Shipman" << std::endl;
+		std::cout << std::endl;
+		std::cout << "    This program is free software: you can redistribute it and/or modify" << std::endl;
+		std::cout << "    it under the terms of the GNU General Public License as published by" << std::endl;
+		std::cout << "    the Free Software Foundation, either version 3 of the License, or" << std::endl;
+		std::cout << "    any later version." << std::endl;
+		std::cout << std::endl;
+		std::cout << "USAGE:" << std::endl;
+		std::cout << "    median_filter [-h] [-p platform] [-d device] [-w width] [-h height]" << std::endl;
+		std::cout << std::endl;
+		std::cout << "Options:" << std::endl;
+		std::cout << "  -h, --help : Print this help message and exit." << std::endl;
+		std::cout << " -p platform : Use platform number \'platform\', defaults to 0." << std::endl;
+		std::cout << "   -d device : Use device number \'device\' in the platform, default: 0." << std::endl;
+		std::cout << "    -W width : Image width (pixels), default: 256." << std::endl;
+		std::cout << "   -H height : Image height (pixels), default: 256." << std::endl;
+		std::cout << std::endl;
+		std::cout << "This program is distributed in the hope that it will be useful," << std::endl;
+		std::cout << "but WITHOUT ANY WARRANTY; without even the implied warranty of" << std::endl;
+		std::cout << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the" << std::endl;
+		std::cout << "GNU General Public License for more details." << std::endl;
+		std::cout << std::endl;
+		std::cout << "You should have received a copy of the GNU General Public License" << std::endl;
+		std::cout << "along with this program.  If not, see <http://www.gnu.org/licenses/>." << std::endl;
+
+		std::exit(0);
+	}
+
+private:
+	void InitThisClass(int argc_, char* argv_[])
+	{
+		m_iImageHeight = 256;
+		m_iImageWidth = 256;
+		for (int idx = 1; idx < argc_; idx++)
+		{
+			if (std::strcmp(argv_[idx], "-W") == 0)
+			{
+				if (idx+1 < argc_)
+					this->m_iImageWidth = static_cast<size_t>(std::atoi(argv_[idx+1]));
+			}
+			else if (std::strcmp(argv_[idx], "-H") == 0)
+			{
+				if (idx+1 < argc_)
+					this->m_iImageHeight = static_cast<size_t>(std::atoi(argv_[idx+1]));
+			}
+		}
+	}
+
+public:
 	/*
 	 * Type cast operator to conver to an std::string.
 	 */
-	explicit operator std::string() const
+	virtual explicit operator std::string() const
 	{
 		std::ostringstream ss;
-		ss << "Platform " << m_iPlatformID << " device " << m_iDeviceID << " - image size: " << m_iImageWidth << "x" << m_iImageHeight;
+		ss << "Platform " << GetPlatformIdx() << " device " << GetDeviceIdx() << " - image size: " << m_iImageWidth << "x" << m_iImageHeight;
 		return ss.str();
 	}
 };
-
-/*
- * Output a CConfig object to a stream using the std::string type cast.
- */
-std::ostream& operator<<(std::ostream& os, const CConfig& obj)
-{
-	os << (std::string) obj;
-	return os;
-}
 
 /**
  * Generate a random 2D gray-scale image.
@@ -122,54 +147,9 @@ std::shared_ptr<std::vector<cl_float>> GenerateImage(size_t width_, size_t heigh
 	return Img;
 }
 
-void PrintHelpMessage()
-{
-	std::cout << "CLTuneDemos/median_filter: A demo showing CLTune applied to a median filter." << std::endl;
-	std::cout << "Copyright (C) 2016 William John Shipman" << std::endl;
-	std::cout << std::endl;
-	std::cout << "    This program is free software: you can redistribute it and/or modify" << std::endl;
-	std::cout << "    it under the terms of the GNU General Public License as published by" << std::endl;
-	std::cout << "    the Free Software Foundation, either version 3 of the License, or" << std::endl;
-	std::cout << "    any later version." << std::endl;
-	std::cout << std::endl;
-	std::cout << "USAGE:" << std::endl;
-	std::cout << "    median_filter [-h] [-p platform] [-d device] [-w width] [-h height]" << std::endl;
-	std::cout << std::endl;
-	std::cout << "Options:" << std::endl;
-	std::cout << "  -h, --help : Print this help message and exit." << std::endl;
-	std::cout << " -p platform : Use platform number \'platform\', defaults to 0." << std::endl;
-	std::cout << "   -d device : Use device number \'device\' in the platform, default: 0." << std::endl;
-	std::cout << "    -W width : Image width (pixels), default: 256." << std::endl;
-	std::cout << "   -H height : Image height (pixels), default: 256." << std::endl;
-	std::cout << std::endl;
-	std::cout << "This program is distributed in the hope that it will be useful," << std::endl;
-	std::cout << "but WITHOUT ANY WARRANTY; without even the implied warranty of" << std::endl;
-	std::cout << "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the" << std::endl;
-	std::cout << "GNU General Public License for more details." << std::endl;
-	std::cout << std::endl;
-	std::cout << "You should have received a copy of the GNU General Public License" << std::endl;
-	std::cout << "along with this program.  If not, see <http://www.gnu.org/licenses/>." << std::endl;
-
-	std::exit(0);
-}
-
-/*
- * Parse the command line inputs for non-configuration options, e.g. -h and --help
- * that force printing the help screen instead of executing code.
- */
-void ParseCLI(int argc, char* argv[])
-{
-	for (int idx = 0; idx < argc; idx++)
-	{
-		if ((std::strcmp(argv[idx], "-h") == 0) || (std::strcmp(argv[idx], "--help") == 0))
-			PrintHelpMessage();
-	}
-}
-
 int main(int argc, char* argv[])
 {
-	ParseCLI(argc, argv);
-	std::shared_ptr<CConfig> Cfg = CConfig::parse(argc, argv);
+	std::shared_ptr<CConfig> Cfg(new CConfig(argc, argv));
 	std::cout << "Configuration: " << *Cfg << std::endl;
 
 	// Create the list of files that define the kernel that will be autotuned.
@@ -181,7 +161,7 @@ int main(int argc, char* argv[])
 	auto BaselineKernel = std::vector<std::string>{"./median_filter/src/medfilt_baseline.cl"};
 
 	// Create the tuner using the platform and device IDs passed on the command line.
-	cltune::Tuner tuner(Cfg->m_iPlatformID, Cfg->m_iDeviceID);
+	cltune::Tuner tuner(Cfg->GetPlatformIdx(), Cfg->GetDeviceIdx());
 
 	// All combinations of values for every tuning parameter will be tested.
 	// For a lot of parameters or values for each parameter, this can be
@@ -192,14 +172,14 @@ int main(int argc, char* argv[])
 	tuner.OutputSearchLog("search_log.txt");
 
 	// Generate the random test image as an std::vector since CLTune doesn't understand images yet.
-	auto ImgIn = GenerateImage(Cfg->m_iImageWidth, Cfg->m_iImageHeight);
+	auto ImgIn = GenerateImage(Cfg->GetImageWidth(), Cfg->GetImageHeight());
 
 	// Allocate space for the output image and initialise it to zero.
-	std::shared_ptr<std::vector<cl_float>> ImgOut(new std::vector<cl_float>(Cfg->m_iImageWidth*Cfg->m_iImageHeight));
+	std::shared_ptr<std::vector<cl_float>> ImgOut(new std::vector<cl_float>(Cfg->GetImageWidth()*Cfg->GetImageHeight()));
 	for (auto &item: *ImgOut) { item = 0.0f; }
 
-	size_t work_x = Cfg->m_iImageWidth;
-	size_t work_y = Cfg->m_iImageHeight;
+	size_t work_x = Cfg->GetImageWidth();
+	size_t work_y = Cfg->GetImageHeight();
 
 	// Here I add a kernel for CLTune to autotune by passing in the list of source files and a kernel name.
 	// The work group size parameters are the basis from which the final work group size gets calculated
@@ -245,8 +225,8 @@ int main(int argc, char* argv[])
 	// same, irrespective of the choice of parameters.
 	tuner.AddArgumentInput(*ImgIn);
 	tuner.AddArgumentOutput(*ImgOut);
-	tuner.AddArgumentScalar(static_cast<int>(Cfg->m_iImageWidth));
-	tuner.AddArgumentScalar(static_cast<int>(Cfg->m_iImageHeight));
+	tuner.AddArgumentScalar(static_cast<int>(Cfg->GetImageWidth()));
+	tuner.AddArgumentScalar(static_cast<int>(Cfg->GetImageHeight()));
 
 	// Starts the tuner
 	tuner.Tune();

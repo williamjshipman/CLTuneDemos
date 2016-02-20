@@ -1,0 +1,31 @@
+#define HALF_WIDTH 3
+#define FILTER_WIDTH (HALF_WIDTH*2+1)
+
+#define PIXEL(X, Y, W, IMG) (IMG[(X) + (Y)*(W)])
+
+float read_pixel(const int x, const int y,
+    const int w, const int h,
+    global float* img)
+{
+    if ((x >= 0) & (y >= 0) & (x < w) & (y < h))
+        return PIXEL(x, y, w, img);
+    else
+        return 0.0f;
+}
+
+void BubbleSort(float* window)
+{
+    for (int idx1 = FILTER_WIDTH*FILTER_WIDTH; idx1 >= 0; idx1--)
+    {
+        for (int idx2 = 1; idx2 < idx1; idx2++)
+        {
+            if (window[idx2-1] > window[idx2])
+            {
+                // Swap.
+                float temp = window[idx2];
+                window[idx2] = window[idx2-1];
+                window[idx2-1] = temp;
+            }
+        }
+    }
+}

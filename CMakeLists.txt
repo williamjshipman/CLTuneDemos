@@ -22,19 +22,39 @@ set_property(TARGET CLTuneDemosUtilities PROPERTY CXX_STANDARD 11)
 set_property(TARGET CLTuneDemosUtilities PROPERTY CXX_STANDARD_REQUIRED ON)
 
 add_executable(MedianFilter
-    median_filter/src/main.cpp)
+    median_filter/src/main.cpp
+    median_filter/src/medfilt.clh
+    median_filter/src/medfilt.cl
+    median_filter/src/medfilt_baseline.cl)
 
 set_property(TARGET MedianFilter PROPERTY CXX_STANDARD 11)
 set_property(TARGET MedianFilter PROPERTY CXX_STANDARD_REQUIRED ON)
 
 target_link_libraries(MedianFilter ${FRAMEWORK_LIBRARIES} CLTuneDemosUtilities)
 
-add_custom_command(TARGET MedianFilter PRE_BUILD
+add_custom_target(MedianFilterResources ALL DEPENDS
+	"${CMAKE_BINARY_DIR}/median_filter/src/medfilt.clh"
+	"${CMAKE_BINARY_DIR}/median_filter/src/medfilt.cl"
+	"${CMAKE_BINARY_DIR}/median_filter/src/medfilt_baseline.cl"
+	COMMENT "Copy MedianFilter OpenCL kernels.")
+add_dependencies(MedianFilter MedianFilterResources)
+
+
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/median_filter/src"
 					COMMAND ${CMAKE_COMMAND} -E
-                         make_directory $<TARGET_FILE_DIR:MedianFilter>/median_filter/src/)
-add_custom_command(TARGET MedianFilter PRE_BUILD
+                         make_directory ${CMAKE_BINARY_DIR}/median_filter/src/)
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/median_filter/src/medfilt.clh"
 					COMMAND ${CMAKE_COMMAND} -E
-                         copy ${CMAKE_SOURCE_DIR}/median_filter/src/medfilt.cl $<TARGET_FILE_DIR:MedianFilter>/median_filter/src/)
-add_custom_command(TARGET MedianFilter PRE_BUILD
+                         copy_if_different "${CMAKE_SOURCE_DIR}/median_filter/src/medfilt.clh" "${CMAKE_BINARY_DIR}/median_filter/src/"
+                   DEPENDS "${CMAKE_SOURCE_DIR}/median_filter/src/medfilt.clh"
+                   DEPENDS ${CMAKE_BINARY_DIR}/median_filter/src/)
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/median_filter/src/medfilt.cl"
 					COMMAND ${CMAKE_COMMAND} -E
-                         copy ${CMAKE_SOURCE_DIR}/median_filter/src/medfilt_baseline.cl $<TARGET_FILE_DIR:MedianFilter>/median_filter/src/)
+                         copy ${CMAKE_SOURCE_DIR}/median_filter/src/medfilt.cl ${CMAKE_BINARY_DIR}/median_filter/src/
+                   DEPENDS "${CMAKE_SOURCE_DIR}/median_filter/src/medfilt.cl"
+                   DEPENDS ${CMAKE_BINARY_DIR}/median_filter/src/)
+add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/median_filter/src/medfilt_baseline.cl"
+					COMMAND ${CMAKE_COMMAND} -E
+                         copy ${CMAKE_SOURCE_DIR}/median_filter/src/medfilt_baseline.cl ${CMAKE_BINARY_DIR}/median_filter/src/
+                   DEPENDS "${CMAKE_SOURCE_DIR}/median_filter/src/medfilt_baseline.cl"
+                   DEPENDS ${CMAKE_BINARY_DIR}/median_filter/src/)

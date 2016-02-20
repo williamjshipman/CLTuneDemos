@@ -19,32 +19,19 @@
  *      Author: William John Shipman (@williamjshipman).
  */
 
-#define HALF_WIDTH 3
-#define FILTER_WIDTH (HALF_WIDTH*2+1)
-
-#define PIXEL(X, Y, W, IMG) (IMG[(X) + (Y)*(W)])
-
-float read_pixel(const size_t x, const size_t y,
-    const size_t w, const size_t h,
-    read_only global float* img)
-{
-    if ((x >= 0) & (y >= 0) & (x < w) & (y < h))
-        return PIXEL(x, y, w, img);
-    else
-        return 0.0f;
-}
+//#include "medfilt.clh"
 
 float median(
     read_only global float* img,
-    const size_t id_x,
-    const size_t id_y,
-    const size_t width,
-    const size_t height)
+    const int id_x,
+    const int id_y,
+    const int width,
+    const int height)
 {
     float window[FILTER_WIDTH * FILTER_WIDTH];
-    for (size_t wnd_y = 0; wnd_y < FILTER_WIDTH; wnd_y++)
+    for (int wnd_y = 0; wnd_y < FILTER_WIDTH; wnd_y++)
     {
-        for (size_t wnd_x = 0; wnd_x < FILTER_WIDTH; wnd_x++)
+        for (int wnd_x = 0; wnd_x < FILTER_WIDTH; wnd_x++)
         {
             PIXEL(wnd_x, wnd_y, FILTER_WIDTH, window) = read_pixel(
                 id_x+wnd_x-HALF_WIDTH,
@@ -55,26 +42,14 @@ float median(
         }
     }
 
-    for (size_t idx1 = 0; idx1 < FILTER_WIDTH*FILTER_WIDTH; idx1++)
-    {
-        for (size_t idx2 = 0; idx2 < idx1; idx2++)
-        {
-            if (window[idx2-1] > window[idx2])
-            {
-                // Swap.
-                float temp = window[idx2];
-                window[idx2] = window[idx2-1];
-                window[idx2-1] = temp;
-            }
-        }
-    }
+    BubbleSort(window);
 
     return window[FILTER_WIDTH*FILTER_WIDTH/2];
 }
 
 __kernel void medfilt(
-    read_only global float* imgIn,
-    write_only global float* imgOut,
+    read_only global float* restrict imgIn,
+    write_only global float* restrict imgOut,
     const int width,
     const int height)
 {
@@ -82,5 +57,5 @@ __kernel void medfilt(
     {
         for (size_t id_x = get_global_id(0); id_x < width; id_x += get_global_size(0))
             PIXEL(id_x, id_y, width, imgOut) = median(imgIn, id_x, id_y, width, height);
-    }
+	}
 }

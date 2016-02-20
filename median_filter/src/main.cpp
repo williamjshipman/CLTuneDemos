@@ -30,10 +30,12 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "CL/opencl.h"
+
+#undef CL_VERSION_2_0
+
 // Includes the OpenCL tuner library
 #include "cltune.h"
-
-#include "CL/opencl.h"
 
 #include "CCLIArgumentsBase.h"
 
@@ -153,12 +155,12 @@ int main(int argc, char* argv[])
 	std::cout << "Configuration: " << *Cfg << std::endl;
 
 	// Create the list of files that define the kernel that will be autotuned.
-	auto Kernels = std::vector<std::string>{"./median_filter/src/medfilt.cl"};
+	auto Kernels = std::vector<std::string>{"./median_filter/src/medfilt.clh", "./median_filter/src/medfilt.cl"};
 
 	// This is the list of files needed to compile the reference kernel.
 	// The outputs of each kernel generated during the autotuning get compared
 	// to this kernels output so that bugs get detected.
-	auto BaselineKernel = std::vector<std::string>{"./median_filter/src/medfilt_baseline.cl"};
+	auto BaselineKernel = std::vector<std::string>{"./median_filter/src/medfilt.clh", "./median_filter/src/medfilt_baseline.cl"};
 
 	// Create the tuner using the platform and device IDs passed on the command line.
 	cltune::Tuner tuner(Cfg->GetPlatformIdx(), Cfg->GetDeviceIdx());
@@ -193,6 +195,8 @@ int main(int argc, char* argv[])
 	// These two are used to define the local work size.
 	tuner.AddParameter(kernelID, "TBX", {1, 4, 8, 16, 32});
 	tuner.AddParameter(kernelID, "TBY", {1, 4, 8, 16, 32});
+//	tuner.AddParameter(kernelID, "TBX", {1, 8});
+//	tuner.AddParameter(kernelID, "TBY", {1, 8});
 
 	// This tells CLTune how much local memory a given choice of parameters will consume.
 	// It gets expressed as a function that takes an std::vector as input and returns the
@@ -215,9 +219,9 @@ int main(int argc, char* argv[])
 
 	// The number of threads, i.e. the global work size, needs to be a multiple of
 	// the local work size, which is (8,8) for the reference kernel.
-	work_x = work_x + work_x % 8;
-	work_y = work_y + work_y % 8;
-	tuner.SetReference(BaselineKernel, "medfilt", {work_x, work_y}, {8, 8});
+	work_x = (work_x / 8) * 8;
+	work_y = (work_y / 8) * 8;
+	tuner.SetReference(BaselineKernel, "medfilt", {work_x, work_y}, {1, 1});
 
 	// Now pass the kernel arguments, in the order they appear in the kernel signature.
 	// Using AddArgumentOutput also tells CLTune which argument needs to be compared

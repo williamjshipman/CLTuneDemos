@@ -9,7 +9,7 @@ The following needs to be installed first to build these demos:
 
 - CLTune
 - C++ compiler supporting C++11 (tested using MinGW-w64)
-- An OpenCL runtime (tested using Intel and AMD CPU runtimes and NVIDIA's GPU runtime on Windows 7.
+- An OpenCL runtime (tested using Intel and AMD CPU runtimes and NVIDIA's GPU runtime on Windows 7, POCL 1.12 and NVIDIA GPU runtime on Ubuntu x86-64).
 - CMake 3.1.0 or later.
 
 After you've installed the pre-requisites, create a folder next to CLTuneDemos, e.g. CLTuneDemos_build and cd into this directory.
@@ -24,7 +24,7 @@ to generate the makefiles (or equivalent for your compiler). Afterwards, if you'
 
 to build the demos.
 
-I've also included `make_eclipse_projects.bat` for making an Eclipse CDT project from which to build the demos.
+I've also included `make_eclipse_projects.bat` and `make_eclipse_projects.sh` for making an Eclipse CDT project from which to build the demos.
 This is a personal preference of mine and I've added the script in case anyone else wants to generate project files for doing development work on this repository using the Eclipse IDE.
 However, this is just a personal preference not a requirement.
 You can adapt this script to generate projects for whatever your favourite IDE is, e.g. Netbeans or Visual Studio.

@@ -5,8 +5,8 @@
  *      Author: wjs
  */
 
-#ifndef UTIL_INCLUDE_CCLIARGUMENTSBASE_H_
-#define UTIL_INCLUDE_CCLIARGUMENTSBASE_H_
+#ifndef UTIL_INCLUDE_CLIARGUMENTSBASE_H_
+#define UTIL_INCLUDE_CLIARGUMENTSBASE_H_
 
 #include <memory>
 
@@ -42,4 +42,4 @@ std::ostream& operator<<(std::ostream& os, const CCLIArgumentsBase& obj)
 	return os;
 }
 
-#endif /* UTIL_INCLUDE_CCLIARGUMENTSBASE_H_ */
+#endif /* UTIL_INCLUDE_CLIARGUMENTSBASE_H_ */

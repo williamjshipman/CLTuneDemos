@@ -14,7 +14,8 @@ include_directories(${FRAMEWORK_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/util/include/)
 link_directories(${FRAMEWORK_LIBRARY_DIRS})
 
 set(CLTuneDemosUtilitiesSrc
-	util/src/CCLIArgumentsBase.cpp)
+	util/src/CLIArgumentsBase.cpp
+	util/include/CLIArgumentsBase.h)
 
 add_library(CLTuneDemosUtilities SHARED ${CLTuneDemosUtilitiesSrc})
 
@@ -39,7 +40,6 @@ add_custom_target(MedianFilterResources ALL DEPENDS
 	COMMENT "Copy MedianFilter OpenCL kernels.")
 add_dependencies(MedianFilter MedianFilterResources)
 
-
 add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/median_filter/src"
 					COMMAND ${CMAKE_COMMAND} -E
                          make_directory ${CMAKE_BINARY_DIR}/median_filter/src/)
@@ -58,3 +58,10 @@ add_custom_command(OUTPUT "${CMAKE_BINARY_DIR}/median_filter/src/medfilt_baselin
                          copy ${CMAKE_SOURCE_DIR}/median_filter/src/medfilt_baseline.cl ${CMAKE_BINARY_DIR}/median_filter/src/
                    DEPENDS "${CMAKE_SOURCE_DIR}/median_filter/src/medfilt_baseline.cl"
                    DEPENDS ${CMAKE_BINARY_DIR}/median_filter/src/)
+
+add_executable(ParallelReduction
+	ParallelReduction/src/main.cpp)
+set_property(TARGET ParallelReduction PROPERTY CXX_STANDARD 11)
+set_property(TARGET ParallelReduction PROPERTY CXX_STANDARD_REQUIRED ON)
+
+target_link_libraries(ParallelReduction ${FRAMEWORK_LIBRARIES} CLTuneDemosUtilities)

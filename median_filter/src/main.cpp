@@ -37,7 +37,7 @@
 // Includes the OpenCL tuner library
 #include "cltune.h"
 
-#include "CCLIArgumentsBase.h"
+#include <CLIArgumentsBase.h>
 
 // Application configuration data from CLI.
 class CConfig : public CCLIArgumentsBase

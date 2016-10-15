@@ -22,6 +22,7 @@ void CCLIArgumentsBase::Init(int argc_, char* argv_[])
 {
 	m_iPlatformIdx = 0;
 	m_iDeviceIdx = 0;
+	m_iNumKernelRuns = 3;
 	for (int idx = 1; idx < argc_; idx++)
 	{
 		if (std::strcmp(argv_[idx], "-p") == 0)
@@ -33,6 +34,11 @@ void CCLIArgumentsBase::Init(int argc_, char* argv_[])
 		{
 			if (idx+1 < argc_)
 				this->m_iDeviceIdx = static_cast<size_t>(std::atoi(argv_[idx+1]));
+		}
+		else if (std::strcmp(argv_[idx], "-r") == 0)
+		{
+			if (idx+1 < argc_)
+				this->m_iNumKernelRuns = std::atoi(argv_[idx+1]);
 		}
 		else if ((std::strcmp(argv_[idx], "-h") == 0) || (std::strcmp(argv_[idx], "--help") == 0))
 			PrintHelpMessage();
@@ -51,4 +57,9 @@ size_t CCLIArgumentsBase::GetPlatformIdx() const
 size_t CCLIArgumentsBase::GetDeviceIdx() const
 {
 	return this->m_iDeviceIdx;
+}
+
+size_t CCLIArgumentsBase::GetNumberOfKernelRuns() const
+{
+	return this->m_iNumKernelRuns;
 }

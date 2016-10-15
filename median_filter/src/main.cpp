@@ -86,6 +86,7 @@ protected:
 		std::cout << "   -d device : Use device number \'device\' in the platform, default: 0." << std::endl;
 		std::cout << "    -W width : Image width (pixels), default: 256." << std::endl;
 		std::cout << "   -H height : Image height (pixels), default: 256." << std::endl;
+		std::cout << "  -r repeats : No. of times to repeat kernel for averaging running time, default: 3." << std::endl;
 		std::cout << std::endl;
 		std::cout << "This program is distributed in the hope that it will be useful," << std::endl;
 		std::cout << "but WITHOUT ANY WARRANTY; without even the implied warranty of" << std::endl;
@@ -172,6 +173,9 @@ int main(int argc, char* argv[])
 
 	// Outputs the search process to a file
 	tuner.OutputSearchLog("search_log.txt");
+
+	tuner.SetNumRuns(Cfg->GetNumberOfKernelRuns());
+	// tuner.SetNumRuns((size_t)10);
 
 	// Generate the random test image as an std::vector since CLTune doesn't understand images yet.
 	auto ImgIn = GenerateImage(Cfg->GetImageWidth(), Cfg->GetImageHeight());

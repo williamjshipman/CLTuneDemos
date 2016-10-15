@@ -24,10 +24,12 @@ protected:
 private:
 	size_t m_iPlatformIdx;
 	size_t m_iDeviceIdx;
+	size_t m_iNumKernelRuns;
 
 public:
 	size_t GetPlatformIdx() const;
 	size_t GetDeviceIdx() const;
+	size_t GetNumberOfKernelRuns() const;
 
 	virtual explicit operator std::string() const {};
 };
